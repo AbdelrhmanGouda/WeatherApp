@@ -14,11 +14,10 @@ import javax.inject.Inject
 
 @HiltViewModel
 class WeatherViewModel @Inject constructor(private val weatherRepo: WeatherRepo) : ViewModel() {
-    val lat = "30.364960"
-    val lon = "31.396839"
+
     private val _weather: MutableStateFlow<WeatherResponse?> = MutableStateFlow(null)
     val weather: StateFlow<WeatherResponse?> = _weather
-    fun getWeather() {
+    fun getWeather(lat: String, lon: String) {
         viewModelScope.launch {
             try {
                 _weather.value = weatherRepo.getCurrentWeatherFromRemote(lat, lon)
