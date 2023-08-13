@@ -38,71 +38,99 @@ class MainActivity : AppCompatActivity() {
     private lateinit var dateMain: TextView
     private lateinit var recyclerView: RecyclerView
     private lateinit var adapter: WeatherAdapter
+
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        fusedLocationProviderClient=LocationServices.getFusedLocationProviderClient(this)
+        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this)
         cityName = findViewById(R.id.city_name)
         tempMain = findViewById(R.id.temp_main)
         descMain = findViewById(R.id.desc_main)
         dateMain = findViewById(R.id.date_main)
-        recyclerView=findViewById(R.id.recycler)
-        adapter= WeatherAdapter()
+        recyclerView = findViewById(R.id.recycler)
+        adapter = WeatherAdapter()
 
         lifecycleScope.launch {
             viewModel.weather.collect {
                 if (it != null) {
-                    cityName.text = it.city.name
+                    //     cityName.text = it.city.name
 
                     val temperatureFahrenheit = it.list.get(0).main?.temp
                     val temperatureCelsius = (temperatureFahrenheit?.minus(273.15))
                     val temperatureFormatted = String.format("%.2f", temperatureCelsius)
                     tempMain.text = "$temperatureFormatted °C"
 
-                    descMain.text=it.list.get(0).weather.get(0).description
+                    descMain.text = it.list.get(0).weather.get(0).description
 
                     val inputFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
                     val date = inputFormat.parse(it.list.get(0).dtTxt!!)
                     val outputFormat = SimpleDateFormat("d MMMM EEEE", Locale.getDefault())
                     val dateanddayname = outputFormat.format(date!!)
-                    dateMain.text=dateanddayname
+                    dateMain.text = dateanddayname
 
 
                     val setNewlist = it.list as List<WeatherList>
                     adapter.setList(setNewlist)
-                    recyclerView.adapter=adapter
+                    recyclerView.adapter = adapter
 
                 }
             }
 
         }
-
-
     }
 
-    fun getLocation(){
-        if (ActivityCompat.checkSelfPermission(this,android.Manifest.permission.ACCESS_FINE_LOCATION)
+    fun getLocation() {
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                android.Manifest.permission.ACCESS_FINE_LOCATION
+            )
             != PackageManager.PERMISSION_GRANTED &&
-            ActivityCompat.checkSelfPermission(this,android.Manifest.permission.ACCESS_COARSE_LOCATION)
-            != PackageManager.PERMISSION_GRANTED){
-            ActivityCompat.requestPermissions(this, arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION),100)
+            ActivityCompat.checkSelfPermission(
+                this,
+                android.Manifest.permission.ACCESS_COARSE_LOCATION
+            )
+            != PackageManager.PERMISSION_GRANTED
+        ) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION),
+                100
+            )
             return
         }
         val location = fusedLocationProviderClient.lastLocation
         location.addOnSuccessListener {
-            if (it != null){
-                val textLatitude = it.latitude.toString()
-                val textLongitude = it.longitude.toString()
-                viewModel.getWeather(textLatitude,textLongitude)
+            if (it != null) {
+                val textLatitude = it.latitude
+                val textLongitude = it.longitude
+                viewModel.getWeather(textLatitude.toString(), textLongitude.toString())
+                reverseGeocodeLocation(textLatitude, textLongitude)
             }
         }
 
 
-
     }
 
+    //    // Function to reverse geocode the location and get address information
+    private fun reverseGeocodeLocation(latitude: Double, longitude: Double) {
+        val geocoder = Geocoder(this, Locale.getDefault())
+        val addresses = geocoder.getFromLocation(latitude, longitude, 1)
+        if (addresses!!.isNotEmpty()) {
+            val address = addresses[0]
+            val city = address.locality
+            val government = address.adminArea
+            cityName.text = city.toString() + "\n" + government.toString()
+            // Use the addressLine as needed
+            // ...
+            // Example: Display address in logs
+            Log.d("Current Address", city)
+        } else {
+            // No address found, handle accordingly
+            // For example, show an error message or use default address values
+        }
+    }
 
     override fun onStart() {
         super.onStart()
